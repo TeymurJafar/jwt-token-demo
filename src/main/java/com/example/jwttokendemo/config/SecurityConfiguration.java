@@ -1,6 +1,7 @@
 package com.example.jwttokendemo.config;
 
-import com.example.jwttokendemo.service.MyUserDetailService;
+import com.example.jwttokendemo.service.UserService;
+import com.example.jwttokendemo.token.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -8,6 +9,8 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -21,10 +24,11 @@ import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true,securedEnabled = true,jsr250Enabled = true)
 @RequiredArgsConstructor
 public class SecurityConfiguration {
 
-    private final MyUserDetailService userDetailService;
+    private final UserService userDetailService;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Bean
@@ -32,17 +36,12 @@ public class SecurityConfiguration {
 
         http
                 .csrf(AbstractHttpConfigurer::disable)
-
-                .authorizeHttpRequests(request -> request
-                        .requestMatchers("/home","/register").permitAll()
-                        .requestMatchers("/login").permitAll()
-                        .requestMatchers("/user").hasRole("USER")
-                        .requestMatchers("/admin").hasRole("ADMIN")
-                        .anyRequest().authenticated()
-
-                )
-                . addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .authorizeHttpRequests(req ->
+                        req.requestMatchers("/api/user/register", "/api/user/login").permitAll()
+                                .anyRequest().authenticated())
+                .addFilterBefore(jwtAuthenticationFilter,UsernamePasswordAuthenticationFilter.class)
                 .httpBasic(withDefaults());
+
         return http.build();
 
     }
@@ -66,7 +65,7 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(){
+    public AuthenticationManager authenticationManager() {
         return new ProviderManager(authenticationProvider());
 
     }
